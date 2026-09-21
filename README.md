@@ -120,3 +120,7 @@ Debe finalizar con `BUILD SUCCESS`.
 Este proyecto es exclusivamente un caso de estudio de persistencia. No
 incluye: autenticación/autorización, pasarela de pagos, notificaciones,
 frontend, API REST/capa Service, ni inventario concurrente de entradas.
+
+## Santiago Pacheco Ossío
+
+Proyecto desarrollado como parte del taller de persistencia con Spring Boot.
