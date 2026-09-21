@@ -122,5 +122,6 @@ incluye: autenticación/autorización, pasarela de pagos, notificaciones,
 frontend, API REST/capa Service, ni inventario concurrente de entradas.
 
 ## Santiago Pacheco Ossío
+## Hewitt Daniel Rocha Navarro
 
 Proyecto desarrollado como parte del taller de persistencia.
