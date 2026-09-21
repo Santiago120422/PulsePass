@@ -123,4 +123,4 @@ frontend, API REST/capa Service, ni inventario concurrente de entradas.
 
 ## Santiago Pacheco Ossío
 
-Proyecto desarrollado como parte del taller de persistencia con Spring Boot.
+Proyecto desarrollado como parte del taller de persistencia.
