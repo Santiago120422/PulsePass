@@ -125,3 +125,30 @@ frontend, API REST/capa Service, ni inventario concurrente de entradas.
 ## Hewitt Daniel Rocha Navarro
 
 Proyecto desarrollado como parte del taller de persistencia.
+
+## Capa de servicios
+
+Frontera entre las futuras capas de exposición y el modelo persistente
+(`com.pulsepass.pulsepass.service`). Cada servicio tiene interfaz + implementación,
+inyección por constructor, DTOs `record` y mapeo Entity → DTO con MapStruct.
+
+| Servicio | Responsabilidad |
+|---|---|
+| `VenueService` | Consulta de venues (por código, activos) |
+| `ArtistService` | Consulta de artistas (id, nombre artístico, activos) |
+| `EventService` | Crear (DRAFT), publicar, asociar artistas, consultas |
+| `UserService` | Registro User + UserProfile, consultas |
+| `TicketService` | Compra atómica, cancelación, uso, consultas |
+
+Decisiones de diseño relevantes:
+
+- Excepciones: `ResourceNotFoundException`, `DuplicateResourceException`, `BusinessRuleException`.
+- Precio: lo calcula `PricingStrategy` (`DefaultPricingStrategy`), nunca el cliente. Precio base
+  configurable con `pulsepass.pricing.base-price` (GENERAL x1, STUDENT x0.70, VIP x2, BACKSTAGE x3.5).
+- Tiempo: se inyecta un `Clock` para poder fijar "ahora" en los tests.
+- Capacidad: ocupan asiento los tickets `PAID` **y** `USED`.
+- Cancelar un ticket de un evento `SOLD_OUT` lo devuelve a `PUBLISHED` (cupo liberado).
+- Los emails se guardan normalizados en minúsculas.
+
+Los unit tests (`*Test`) usan JUnit 5 + Mockito + AssertJ, sin Spring ni PostgreSQL:
+`mvn clean test`. Los tests de repositorio (`*IT`) siguen requiriendo Docker.
