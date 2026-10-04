@@ -152,3 +152,7 @@ Decisiones de diseño relevantes:
 
 Los unit tests (`*Test`) usan JUnit 5 + Mockito + AssertJ, sin Spring ni PostgreSQL:
 `mvn clean test`. Los tests de repositorio (`*IT`) siguen requiriendo Docker.
+
+
+Santiago Pacheco Ossío
+Hewitt Daniel Rocha Navarro
