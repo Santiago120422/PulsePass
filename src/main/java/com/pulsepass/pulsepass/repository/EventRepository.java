@@ -39,4 +39,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findRecommendedEvents(@Param("fromDate") LocalDateTime fromDate,
                                        @Param("city") String city,
                                        @Param("artistText") String artistText);
+
+    // Capa de servicios: BR-EVENT-001
+    boolean existsByEventCode(String eventCode);
 }
