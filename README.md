@@ -121,9 +121,6 @@ Este proyecto es exclusivamente un caso de estudio de persistencia. No
 incluye: autenticación/autorización, pasarela de pagos, notificaciones,
 frontend, API REST/capa Service, ni inventario concurrente de entradas.
 
-## Santiago Pacheco Ossío
-## Hewitt Daniel Rocha Navarro
-
 Proyecto desarrollado como parte del taller de persistencia.
 
 ## Capa de servicios
@@ -153,6 +150,55 @@ Decisiones de diseño relevantes:
 Los unit tests (`*Test`) usan JUnit 5 + Mockito + AssertJ, sin Spring ni PostgreSQL:
 `mvn clean test`. Los tests de repositorio (`*IT`) siguen requiriendo Docker.
 
+## Fase 3 — Capa de Controladores REST
 
+API REST sobre los Services existentes. Los Controllers son delgados: validan la
+entrada (Bean Validation), delegan en el Service y devuelven `ResponseEntity<DTO>`.
+Los errores se traducen en un único `GlobalExceptionHandler` (`@RestControllerAdvice`)
+y siempre usan el contrato `ErrorResponse`.
+
+### Endpoints principales
+
+| Método | Endpoint | Éxito |
+|---|---|---|
+| GET | `/api/venues/{code}` | 200 |
+| GET | `/api/venues/active` | 200 |
+| POST | `/api/events` | 201 |
+| GET | `/api/events/{eventCode}` | 200 |
+| GET | `/api/events/published` | 200 |
+| PATCH | `/api/events/{eventCode}/publish` | 200 |
+| POST | `/api/events/{eventCode}/artists/{artistId}` | 200 |
+| GET | `/api/events/by-artist?stageName=...` | 200 |
+| GET | `/api/artists/{id}` | 200 |
+| GET | `/api/artists/by-stage-name?stageName=...` | 200 |
+| GET | `/api/artists/active` | 200 |
+| POST | `/api/users` | 201 |
+| GET | `/api/users/by-email?email=...` | 200 |
+| GET | `/api/users/by-username?username=...` | 200 |
+| POST | `/api/tickets` | 201 |
+| GET | `/api/tickets/{ticketCode}` | 200 |
+| GET | `/api/tickets/by-user?email=...` | 200 |
+| GET | `/api/events/{eventCode}/tickets/paid` | 200 |
+| PATCH | `/api/tickets/{ticketCode}/cancel` | 200 |
+| PATCH | `/api/tickets/{ticketCode}/use` | 200 |
+
+### Errores
+
+| Condición | HTTP |
+|---|---|
+| Bean Validation / JSON mal formado | 400 |
+| `ResourceNotFoundException` | 404 |
+| `DuplicateResourceException` / `BusinessRuleException` | 409 |
+| Error inesperado | 500 |
+
+### Pruebas de Controller
+
+Usan `@WebMvcTest`, `MockMvc` y `@MockitoBean` (los Services son mocks), por lo
+que no necesitan PostgreSQL ni Docker:
+
+```bash
+mvn clean test -Dtest='*ControllerTest'
+```
+# Autores
 ## Santiago Pacheco Ossío
 ## Hewitt Daniel Rocha Navarro
