@@ -3,6 +3,7 @@ package com.pulsepass.pulsepass.repository;
 import com.pulsepass.pulsepass.domain.Ticket;
 import com.pulsepass.pulsepass.domain.enums.TicketStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Collection;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -27,4 +28,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // FR-SRC-004
     @Query("SELECT t FROM Ticket t WHERE t.event.eventDate > :fromDate ORDER BY t.event.eventDate ASC")
     List<Ticket> findTicketsForUpcomingEvents(@Param("fromDate") LocalDateTime fromDate);
+
+    // Capa de servicios: listado por usuario (más recientes primero)
+    List<Ticket> findByUser_EmailIgnoreCaseOrderByPurchaseDateDesc(String email);
+
+    // Capa de servicios: capacidad (asientos ocupados = PAID + USED)
+    long countByEvent_EventCodeAndStatusIn(String eventCode, Collection<TicketStatus> statuses);
 }

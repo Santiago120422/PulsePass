@@ -121,7 +121,84 @@ Este proyecto es exclusivamente un caso de estudio de persistencia. No
 incluye: autenticación/autorización, pasarela de pagos, notificaciones,
 frontend, API REST/capa Service, ni inventario concurrente de entradas.
 
+Proyecto desarrollado como parte del taller de persistencia.
+
+## Capa de servicios
+
+Frontera entre las futuras capas de exposición y el modelo persistente
+(`com.pulsepass.pulsepass.service`). Cada servicio tiene interfaz + implementación,
+inyección por constructor, DTOs `record` y mapeo Entity → DTO con MapStruct.
+
+| Servicio | Responsabilidad |
+|---|---|
+| `VenueService` | Consulta de venues (por código, activos) |
+| `ArtistService` | Consulta de artistas (id, nombre artístico, activos) |
+| `EventService` | Crear (DRAFT), publicar, asociar artistas, consultas |
+| `UserService` | Registro User + UserProfile, consultas |
+| `TicketService` | Compra atómica, cancelación, uso, consultas |
+
+Decisiones de diseño relevantes:
+
+- Excepciones: `ResourceNotFoundException`, `DuplicateResourceException`, `BusinessRuleException`.
+- Precio: lo calcula `PricingStrategy` (`DefaultPricingStrategy`), nunca el cliente. Precio base
+  configurable con `pulsepass.pricing.base-price` (GENERAL x1, STUDENT x0.70, VIP x2, BACKSTAGE x3.5).
+- Tiempo: se inyecta un `Clock` para poder fijar "ahora" en los tests.
+- Capacidad: ocupan asiento los tickets `PAID` **y** `USED`.
+- Cancelar un ticket de un evento `SOLD_OUT` lo devuelve a `PUBLISHED` (cupo liberado).
+- Los emails se guardan normalizados en minúsculas.
+
+Los unit tests (`*Test`) usan JUnit 5 + Mockito + AssertJ, sin Spring ni PostgreSQL:
+`mvn clean test`. Los tests de repositorio (`*IT`) siguen requiriendo Docker.
+
+## Fase 3 — Capa de Controladores REST
+
+API REST sobre los Services existentes. Los Controllers son delgados: validan la
+entrada (Bean Validation), delegan en el Service y devuelven `ResponseEntity<DTO>`.
+Los errores se traducen en un único `GlobalExceptionHandler` (`@RestControllerAdvice`)
+y siempre usan el contrato `ErrorResponse`.
+
+### Endpoints principales
+
+| Método | Endpoint | Éxito |
+|---|---|---|
+| GET | `/api/venues/{code}` | 200 |
+| GET | `/api/venues/active` | 200 |
+| POST | `/api/events` | 201 |
+| GET | `/api/events/{eventCode}` | 200 |
+| GET | `/api/events/published` | 200 |
+| PATCH | `/api/events/{eventCode}/publish` | 200 |
+| POST | `/api/events/{eventCode}/artists/{artistId}` | 200 |
+| GET | `/api/events/by-artist?stageName=...` | 200 |
+| GET | `/api/artists/{id}` | 200 |
+| GET | `/api/artists/by-stage-name?stageName=...` | 200 |
+| GET | `/api/artists/active` | 200 |
+| POST | `/api/users` | 201 |
+| GET | `/api/users/by-email?email=...` | 200 |
+| GET | `/api/users/by-username?username=...` | 200 |
+| POST | `/api/tickets` | 201 |
+| GET | `/api/tickets/{ticketCode}` | 200 |
+| GET | `/api/tickets/by-user?email=...` | 200 |
+| GET | `/api/events/{eventCode}/tickets/paid` | 200 |
+| PATCH | `/api/tickets/{ticketCode}/cancel` | 200 |
+| PATCH | `/api/tickets/{ticketCode}/use` | 200 |
+
+### Errores
+
+| Condición | HTTP |
+|---|---|
+| Bean Validation / JSON mal formado | 400 |
+| `ResourceNotFoundException` | 404 |
+| `DuplicateResourceException` / `BusinessRuleException` | 409 |
+| Error inesperado | 500 |
+
+### Pruebas de Controller
+
+Usan `@WebMvcTest`, `MockMvc` y `@MockitoBean` (los Services son mocks), por lo
+que no necesitan PostgreSQL ni Docker:
+
+```bash
+mvn clean test -Dtest='*ControllerTest'
+```
+# Autores
 ## Santiago Pacheco Ossío
 ## Hewitt Daniel Rocha Navarro
-
-Proyecto desarrollado como parte del taller de persistencia.
