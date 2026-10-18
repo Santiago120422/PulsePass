@@ -10,7 +10,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "events")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter @Setter @Builder
 public class Event {
 
     @Id
@@ -54,4 +54,23 @@ public class Event {
     )
     @Builder.Default
     private Set<Artist> artists = new HashSet<>();
+
+    // Constructor vacío requerido por JPA
+    public Event() {
+    }
+
+    // Constructor completo necesario para el funcionamiento del @Builder
+    public Event(Long id, String eventCode, String name, String description, EventCategory category, EventStatus status, LocalDateTime eventDate, Integer minimumAge, String streamingUrl, Venue venue, Set<Artist> artists) {
+        this.id = id;
+        this.eventCode = eventCode;
+        this.name = name;
+        this.description = description;
+        this.category = category;
+        this.status = status;
+        this.eventDate = eventDate;
+        this.minimumAge = minimumAge;
+        this.streamingUrl = streamingUrl;
+        this.venue = venue;
+        this.artists = artists;
+    }
 }

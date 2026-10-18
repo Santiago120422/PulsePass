@@ -32,5 +32,9 @@ public record RegisterUserRequest(
         String city,
 
         @NotNull(message = "Birth date is required")
-        LocalDate birthDate
+        LocalDate birthDate,
+
+        @NotBlank(message = "Password is required")
+        @Size(min = 12, max = 72, message = "Password must have between 12 and 72 characters")
+        String password
 ) {}

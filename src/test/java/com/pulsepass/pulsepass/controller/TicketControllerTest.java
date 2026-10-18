@@ -8,6 +8,7 @@ import com.pulsepass.pulsepass.exception.BusinessRuleException;
 import com.pulsepass.pulsepass.exception.ResourceNotFoundException;
 import com.pulsepass.pulsepass.service.TicketService;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -29,15 +30,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WithMockUser(roles = "ADMIN")
 @WebMvcTest(TicketController.class)
-class TicketControllerTest {
+class TicketControllerTest extends ControllerSecurityTestBase {
 
     private static final String VALID_BODY = """
             { "userEmail": "andrea@pulsepass.com", "eventCode": "CMF-2026", "type": "VIP" }
             """;
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @MockitoBean
     private TicketService ticketService;

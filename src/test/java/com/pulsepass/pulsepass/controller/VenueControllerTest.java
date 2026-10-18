@@ -4,6 +4,7 @@ import com.pulsepass.pulsepass.dto.response.VenueResponse;
 import com.pulsepass.pulsepass.exception.ResourceNotFoundException;
 import com.pulsepass.pulsepass.service.VenueService;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -19,11 +20,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WithMockUser(roles = "ADMIN")
 @WebMvcTest(VenueController.class)
-class VenueControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
+class VenueControllerTest extends ControllerSecurityTestBase {
 
     @MockitoBean
     private VenueService venueService;

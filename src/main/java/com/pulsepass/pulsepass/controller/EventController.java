@@ -5,8 +5,12 @@ import com.pulsepass.pulsepass.dto.response.EventResponse;
 import com.pulsepass.pulsepass.dto.response.EventSummaryResponse;
 import com.pulsepass.pulsepass.service.EventService;
 import jakarta.validation.Valid;
+import com.pulsepass.pulsepass.domain.enums.EventStatus;
+import com.pulsepass.pulsepass.exception.ResourceNotFoundException;
+import com.pulsepass.pulsepass.security.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,8 +31,13 @@ public class EventController {
     }
 
     @GetMapping("/{eventCode}")
-    public ResponseEntity<EventResponse> findByCode(@PathVariable String eventCode) {
-        return ResponseEntity.ok(eventService.findByCode(eventCode));
+    public ResponseEntity<EventResponse> findByCode(@PathVariable String eventCode, Authentication authentication) {
+        EventResponse event = eventService.findByCode(eventCode);
+        // FR-SECEVT-02: el publico solo ve eventos PUBLISHED. Para los demas responde 404 (no revela borradores).
+        if (event.status() != EventStatus.PUBLISHED && !SecurityUtils.isStaffOrAdmin(authentication)) {
+            throw ResourceNotFoundException.of("Event", eventCode);
+        }
+        return ResponseEntity.ok(event);
     }
 
     @GetMapping("/published")
@@ -48,7 +57,13 @@ public class EventController {
     }
 
     @GetMapping("/by-artist")
-    public ResponseEntity<List<EventSummaryResponse>> findByArtist(@RequestParam String stageName) {
-        return ResponseEntity.ok(eventService.findByArtist(stageName));
+    public ResponseEntity<List<EventSummaryResponse>> findByArtist(@RequestParam String stageName,
+                                                                   Authentication authentication) {
+        List<EventSummaryResponse> events = eventService.findByArtist(stageName);
+        // FR-SECEVT-06: sin STAFF/ADMIN solo se devuelven eventos publicados.
+        if (!SecurityUtils.isStaffOrAdmin(authentication)) {
+            events = events.stream().filter(e -> e.status() == EventStatus.PUBLISHED).toList();
+        }
+        return ResponseEntity.ok(events);
     }
 }
