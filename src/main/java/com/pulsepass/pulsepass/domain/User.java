@@ -5,7 +5,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "users")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter @Setter @Builder
 public class User {
 
     @Id
@@ -23,4 +23,17 @@ public class User {
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private UserProfile profile;
+
+    // Constructor vacío requerido por JPA
+    public User() {
+    }
+
+    // Constructor completo necesario para el funcionamiento del @Builder
+    public User(Long id, String username, String email, Boolean active, UserProfile profile) {
+        this.id = id;
+        this.username = username;
+        this.email = email;
+        this.active = active;
+        this.profile = profile;
+    }
 }

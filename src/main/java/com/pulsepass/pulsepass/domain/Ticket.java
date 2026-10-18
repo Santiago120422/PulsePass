@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tickets")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter @Setter @Builder
 public class Ticket {
 
     @Id
@@ -40,4 +40,20 @@ public class Ticket {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
+
+    // Constructor vacío requerido por JPA
+    public Ticket() {
+    }
+
+    // Constructor completo necesario para el funcionamiento del @Builder
+    public Ticket(Long id, String ticketCode, TicketType type, BigDecimal price, TicketStatus status, LocalDateTime purchaseDate, User user, Event event) {
+        this.id = id;
+        this.ticketCode = ticketCode;
+        this.type = type;
+        this.price = price;
+        this.status = status;
+        this.purchaseDate = purchaseDate;
+        this.user = user;
+        this.event = event;
+    }
 }

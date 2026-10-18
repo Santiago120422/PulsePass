@@ -26,5 +26,6 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("pulsepass.security.jwt.secret-base64", () -> "x2XCGrSYLyn/ytOPS1jxM5uNb+7nKc9/Dy6sphYoYBI=");
     }
 }

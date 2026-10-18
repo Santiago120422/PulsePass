@@ -7,7 +7,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "venues")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter @Setter @Builder
 public class Venue {
 
     @Id
@@ -35,4 +35,20 @@ public class Venue {
     @OneToMany(mappedBy = "venue")
     @Builder.Default
     private List<Event> events = new ArrayList<>();
+
+    // Constructor vacío requerido por JPA
+    public Venue() {
+    }
+
+    // Constructor completo necesario para el funcionamiento del @Builder
+    public Venue(Long id, String code, String name, String city, String address, Integer capacity, Boolean active, List<Event> events) {
+        this.id = id;
+        this.code = code;
+        this.name = name;
+        this.city = city;
+        this.address = address;
+        this.capacity = capacity;
+        this.active = active;
+        this.events = events;
+    }
 }

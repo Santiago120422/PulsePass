@@ -199,6 +199,100 @@ que no necesitan PostgreSQL ni Docker:
 ```bash
 mvn clean test -Dtest='*ControllerTest'
 ```
+
+---
+
+# Fase 4 — Seguridad (Spring Security + JJWT)
+
+API **stateless** con JWT firmado (HS256), tres roles (`USER`, `STAFF`, `ADMIN`) y control de propiedad de recursos.
+
+## Puesta en marcha
+
+1. **Base de datos limpia.** La migración `V4__security_credentials_roles.sql` fue reescrita. Si tu BD local ya
+   aplicó una V4 anterior, Flyway fallará con *checksum mismatch*. Recréala:
+   ```sql
+   DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+   ```
+2. **Clave JWT** (obligatoria; la app NO arranca sin ella). Base64 de al menos 32 bytes aleatorios:
+   ```bash
+   # Linux / macOS / Git Bash
+   export PULSEPASS_JWT_SECRET_BASE64=$(openssl rand -base64 32)
+   ```
+   ```powershell
+   # PowerShell
+   $env:PULSEPASS_JWT_SECRET_BASE64 = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+   ```
+   Opcional: `PULSEPASS_JWT_ISSUER` (por defecto `pulsepass-api`). Plantilla en `.env.example`. **Nunca** subas la clave al repo.
+3. **Arrancar** con el perfil `dev` (crea las cuentas semilla):
+   ```bash
+   ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+   ```
+
+## Cuentas de prueba (solo perfil `dev`)
+
+| Usuario | Rol | Contraseña (ficticia) |
+|---|---|---|
+| `admin` | ADMIN | `DemoPulsePass2026!` |
+| `laura`, `miguel` | STAFF | `DemoPulsePass2026!` |
+
+El registro público (`POST /api/users`) **solo** crea cuentas `USER`. Los roles privilegiados nunca se asignan por HTTP.
+
+## Endpoints de autenticación
+
+| Verbo | Ruta | Acceso |
+|---|---|---|
+| POST | `/api/users` | Público — body igual que antes **+ `password`** (12 a 72 caracteres) |
+| POST | `/api/auth/login` | Público — `{"identifier": "usuario o correo", "password": "..."}` → `{accessToken, tokenType, expiresIn: 900}` |
+| GET | `/api/auth/me` | Bearer |
+
+```bash
+curl -X POST localhost:8080/api/auth/login -H 'Content-Type: application/json' \
+     -d '{"identifier":"admin","password":"DemoPulsePass2026!"}'
+curl localhost:8080/api/auth/me -H "Authorization: Bearer <TOKEN>"
+```
+
+## Matriz de autorización
+
+| Operación | Regla |
+|---|---|
+| `GET /api/venues/**`, `/api/artists/**`, `/api/events/published` | Público |
+| `GET /api/events/{code}`, `/api/events/by-artist` | Público **solo eventos PUBLISHED**; borradores → 404 salvo STAFF/ADMIN |
+| `POST /api/events`, `PATCH /api/events/*/publish`, `POST /api/events/*/artists/*` | ADMIN |
+| `PATCH /api/tickets/*/use`, `GET /api/events/*/tickets/paid` | STAFF / ADMIN |
+| `POST /api/tickets` | USER, y `userEmail` debe ser el del principal |
+| `GET /api/tickets/{code}` | Propietario, o STAFF/ADMIN |
+| `PATCH /api/tickets/*/cancel` | Propietario, o ADMIN |
+| `GET /api/tickets/by-user`, `/api/users/by-email`, `/api/users/by-username` | Propio usuario, o ADMIN |
+
+Respuestas: `401` sin identidad válida, `403` sin permiso (ticket ajeno o inexistente → 403, política única),
+todas con el contrato `ErrorResponse` de 6 campos.
+
+## Arquitectura
+
+- `SecurityConfig`: cadena de filtros y reglas de URL. `JwtAuthenticationFilter` (no es `@Component`, se instancia en la config).
+- `JwtService`: firma/valida (HS256, issuer, exp, sub, iat, jti). El token solo lleva el **ID persistente**; estado y roles se leen de la BD en **cada** request.
+- `CustomUserDetailsService`: usuario + hash (`user_credentials`) + roles (`user_roles`) + estado `active`.
+- `AuthService`: registro atómico (User + perfil + hash BCrypt + `ROLE_USER`).
+- `AuthorizationService` (bean `authz`): propiedad anti-IDOR, usada desde `@PreAuthorize` en `TicketService` y `UserService`.
+- `RestAuthenticationEntryPoint` / `RestAccessDeniedHandler`: 401/403 en JSON; `GlobalExceptionHandler` también traduce `AccessDeniedException` y `AuthenticationException`.
+
+## Verificación
+
+```bash
+./mvnw clean test      # unitarias + MockMvc con filtros reales + integración (requiere Docker)
+```
+
+Escenario manual: registrar a Andrea → login → intentar `GET /api/users/by-email?email=<otro>` (403) → intentar publicar un evento (403) → login como `admin` y publicar → alterar un carácter del JWT (401) → desactivar el usuario en BD y repetir el request (401).
+
+## Limitaciones conocidas (MVP académico, no listo para producción)
+
+- Sin refresh tokens, sin revocación por `jti` (el logout no invalida tokens ya emitidos; vida corta de 15 min).
+- STAFF es global: el dominio aún no asigna personal a eventos.
+- Sin límite de intentos de login, sin rotación de claves, sin MFA ni recuperación de contraseña.
+- Usuarios creados antes de la Fase 4 no tienen credenciales y no pueden iniciar sesión hasta una activación segura.
+- HTTPS obligatorio fuera de localhost.
+
 # Autores
 ## Santiago Pacheco Ossío
 ## Hewitt Daniel Rocha Navarro
+

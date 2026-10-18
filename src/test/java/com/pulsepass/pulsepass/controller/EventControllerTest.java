@@ -10,6 +10,7 @@ import com.pulsepass.pulsepass.exception.BusinessRuleException;
 import com.pulsepass.pulsepass.exception.ResourceNotFoundException;
 import com.pulsepass.pulsepass.service.EventService;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -30,8 +31,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WithMockUser(roles = "ADMIN")
 @WebMvcTest(EventController.class)
-class EventControllerTest {
+class EventControllerTest extends ControllerSecurityTestBase {
 
     private static final LocalDateTime DATE = LocalDateTime.of(2026, 12, 15, 20, 0);
 
@@ -46,9 +48,6 @@ class EventControllerTest {
               "venueCode": "VEN-SMR-01"
             }
             """;
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @MockitoBean
     private EventService eventService;
