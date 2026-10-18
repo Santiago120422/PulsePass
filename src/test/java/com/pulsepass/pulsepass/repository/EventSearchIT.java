@@ -51,7 +51,7 @@ class EventSearchIT extends AbstractIntegrationTest {
                 .address("Av 6").capacity(10000).active(true).build());
 
         Artist artist = artistRepository.save(Artist.builder()
-                .stageName("CAROL G").country("CO").genre("Reggaeton").active(true).build());
+                .stageName("kAROL G").country("CO").genre("Reggaeton").active(true).build());
 
         LocalDateTime from = LocalDateTime.now();
 

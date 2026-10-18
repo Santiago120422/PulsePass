@@ -81,7 +81,7 @@ class UserRepositoryIT extends AbstractIntegrationTest {
         UserProfile profile2 = UserProfile.builder()
                 .firstName("Ana2").lastName("Pérez2").user(user).build();
 
-        assertThrows(DataIntegrityViolationException.class, () -> {
+        assertThrows(org.hibernate.exception.ConstraintViolationException.class, () -> {
             entityManager.persist(profile2);
             entityManager.flush();
         });

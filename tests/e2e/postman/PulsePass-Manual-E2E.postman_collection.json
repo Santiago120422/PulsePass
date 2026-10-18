@@ -1,0 +1,1795 @@
+{
+  "info": {
+    "_postman_id": "ff81acdf-6d2a-4fc0-ba77-7f4ff43b3906",
+    "name": "PulsePass — E2E Manual",
+    "description": "Colección Postman v2.1 para ejecución manual de PulsePass. Fase 5: 20 rutas de negocio + POST /api/auth/login + GET /api/auth/me. No usa scripts: configurar variables, pulsar Send, inspeccionar status/headers/body y anotar evidencia en tests/e2e/registro-ejecucion-manual.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "item": [
+    {
+      "name": "00 Preparación / actores de prueba (manual)",
+      "description": "Peticiones auxiliares, adicionales a las 22 rutas base. Registrar ADMIN/STAFF por el flujo público les asigna USER; se debe pausar y provisionar el rol mediante el SQL local documentado antes de usar las variables adminToken/staffToken. Desactivar INACTIVE_USER solo en la base de prueba. No ejecutar en producción.",
+      "item": [
+        {
+          "name": "SETUP-USR-ADMIN — Registrar cuenta ADMIN de prueba (inicialmente USER)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminIdentifier}}\",\n  \"email\": \"{{adminEmail}}\",\n  \"firstName\": \"Admin\",\n  \"lastName\": \"E2E\",\n  \"phone\": \"\",\n  \"city\": \"Santa Marta\",\n  \"birthDate\": \"1990-01-01\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/users",
+            "description": "ID: SETUP-USR-ADMIN\nActor: ANONYMOUS\nPrecondiciones: Completar adminIdentifier, adminEmail y adminPassword con valores ficticios únicos. El registro público no acepta elevación de rol.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 201 Created\nRevisión manual: Confirmar UserResponse sin password/hash. Después de registrar, asignar ADMIN únicamente mediante SQL local documentado en fixtures/README.md.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-USR-STAFF — Registrar cuenta STAFF de prueba (inicialmente USER)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{staffIdentifier}}\",\n  \"email\": \"{{staffEmail}}\",\n  \"firstName\": \"Staff\",\n  \"lastName\": \"E2E\",\n  \"phone\": \"\",\n  \"city\": \"Santa Marta\",\n  \"birthDate\": \"1990-01-01\",\n  \"password\": \"{{staffPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/users",
+            "description": "ID: SETUP-USR-STAFF\nActor: ANONYMOUS\nPrecondiciones: Completar staffIdentifier, staffEmail y staffPassword con valores ficticios únicos.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 201 Created\nRevisión manual: Confirmar UserResponse sin secretos. Después, asignar STAFF fuera de HTTP solo en la base E2E local.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-USR-INACTIVE — Registrar cuenta inactiva de prueba",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{inactiveUsername}}\",\n  \"email\": \"{{inactiveEmail}}\",\n  \"firstName\": \"Inactivo\",\n  \"lastName\": \"E2E\",\n  \"phone\": \"\",\n  \"city\": \"Santa Marta\",\n  \"birthDate\": \"1990-01-01\",\n  \"password\": \"{{inactivePassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/users",
+            "description": "ID: SETUP-USR-INACTIVE\nActor: ANONYMOUS\nPrecondiciones: Completar inactiveUsername, inactiveEmail e inactivePassword.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 201 Created\nRevisión manual: Confirmar sin credenciales en respuesta. Después del login inicial, desactivar la cuenta mediante SQL local; no reutilizar un usuario real.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-AUTH-ADMIN — Login de ADMIN tras provisionar rol",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{adminIdentifier}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "ID: SETUP-AUTH-ADMIN\nActor: ADMIN\nPrecondiciones: Primero registrar la cuenta y añadir ADMIN en user_roles mediante el SQL local documentado. Después de cambios de rol, iniciar sesión de nuevo para comprobar el rol vigente.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Copiar accessToken manualmente a la variable local adminToken y confirmar role ADMIN con GET /api/auth/me.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-AUTH-STAFF — Login de STAFF tras provisionar rol",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{staffIdentifier}}\",\n  \"password\": \"{{staffPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "ID: SETUP-AUTH-STAFF\nActor: STAFF\nPrecondiciones: Primero registrar la cuenta y añadir STAFF en user_roles mediante SQL local.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Copiar accessToken a la variable local staffToken y confirmar role STAFF con GET /api/auth/me.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-AUTH-INACTIVE — Login inicial de usuario inactivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{inactiveUsername}}\",\n  \"password\": \"{{inactivePassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "ID: SETUP-AUTH-INACTIVE\nActor: INACTIVE_USER\nPrecondiciones: Antes de desactivar la cuenta, iniciar sesión y copiar accessToken a inactiveToken. Luego desactivar el usuario en la base E2E local.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK antes de desactivar\nRevisión manual: Guardar el token solo en la variable local; después de desactivar, GET /api/auth/me con este token debe responder 401.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 Venues (2 rutas)",
+      "item": [
+        {
+          "name": "E2E-VEN-02 — Consultar venues activos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/venues/active",
+            "description": "ID: E2E-VEN-02\nActor: ANONYMOUS\nPrecondiciones: Base de datos con venue activo insertado por fixture.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comprobar que la respuesta es una lista JSON y que cada elemento active=true.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-VEN-01 — Consultar venue por código",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/venues/{{venueActiveCode}}",
+            "description": "ID: E2E-VEN-01\nActor: ANONYMOUS\nPrecondiciones: Copiar un code real de la respuesta de venues activos.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK; código inexistente: 404\nRevisión manual: Comparar code, name, city, capacity y active con el fixture.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 Artists (3 rutas)",
+      "item": [
+        {
+          "name": "E2E-ART-03 — Listar artistas activos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/artists/active",
+            "description": "ID: E2E-ART-03\nActor: ANONYMOUS\nPrecondiciones: Fixture con al menos un artista activo.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Confirmar que es una lista JSON y solo incluye artistas activos.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-ART-01 — Consultar artista por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/artists/{{artistId}}",
+            "description": "ID: E2E-ART-01\nActor: ANONYMOUS\nPrecondiciones: Copiar id numérico de artista real.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK; id inexistente: 404\nRevisión manual: Comprobar id, stageName, genre y active.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-ART-02 — Consultar artista por nombre artístico",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/artists/by-stage-name?stageName={{artistStageName}}",
+            "description": "ID: E2E-ART-02\nActor: ANONYMOUS\nPrecondiciones: artistStageName debe coincidir con un artista existente.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comprobar el DTO y que el nombre artístico corresponde al consultado.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 Registro y autenticación (3 rutas)",
+      "item": [
+        {
+          "name": "E2E-USR-01 — Registrar USER_A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{userAUsername}}\",\n  \"email\": \"{{userAEmail}}\",\n  \"firstName\": \"Andrea\",\n  \"lastName\": \"Pruebas\",\n  \"phone\": \"\",\n  \"city\": \"Santa Marta\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/users",
+            "description": "ID: E2E-USR-01\nActor: ANONYMOUS\nPrecondiciones: Antes del envío, completar userAUsername, userAEmail y userAPassword con datos nuevos; password mínimo 12 caracteres y máximo 72 bytes UTF-8.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 201 Created\nRevisión manual: Comprobar DTO UserResponse, roles no provistos por cliente y ausencia de password/passwordHash.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-01 — Login de USER_A",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{userAUsername}}\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "ID: E2E-AUTH-01\nActor: USER_A\nPrecondiciones: Registrar USER_A primero. Copiar el accessToken manualmente a la variable local userAToken.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comprobar accessToken no vacío, tokenType=Bearer y expiresIn=900 (o el TTL configurado). No guardar token en archivos exportados.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-02 — Identidad autenticada de USER_A",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "ID: E2E-AUTH-02\nActor: USER_A\nPrecondiciones: Después del login, pegar el token en la variable local userAToken.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comprobar id, username, email y roles; confirmar que no aparecen password ni passwordHash.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 Consultas de usuario y propiedad (2 rutas)",
+      "item": [
+        {
+          "name": "E2E-USR-02 — Consultar usuario propio por email",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/users/by-email?email={{userAEmail}}",
+            "description": "ID: E2E-USR-02\nActor: USER_A\nPrecondiciones: USER_A registrado y autenticado.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comparar id/username/email y confirmar que la respuesta no incluye secretos.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-USR-03 — Consultar usuario propio por username",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/users/by-username?username={{userAUsername}}",
+            "description": "ID: E2E-USR-03\nActor: USER_A\nPrecondiciones: USER_A registrado y autenticado.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comprobar la identidad y que el DTO no filtra credenciales.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 Events (6 rutas)",
+      "item": [
+        {
+          "name": "E2E-EVT-01 — Crear evento borrador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"{{newEventCode}}\",\n  \"name\": \"PulsePass E2E {{runId}}\",\n  \"description\": \"Evento de prueba manual\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-15T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/events",
+            "description": "ID: E2E-EVT-01\nActor: ADMIN\nPrecondiciones: ADMIN debe existir como fixture privilegiado, haber iniciado sesión y tener un token válido. venueActiveCode debe ser válido; newEventCode debe ser único para esta corrida.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 201 Created\nRevisión manual: Comprobar eventCode, status=DRAFT y datos del Venue. Guardar newEventCode manualmente.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-05 — Asociar artista al evento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/events/{{newEventCode}}/artists/{{artistId}}",
+            "description": "ID: E2E-EVT-05\nActor: ADMIN\nPrecondiciones: Crear el evento y tener artistId real; la asociación no debe existir todavía.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comprobar lista de artistas y que la asociación quedó reflejada.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-04 — Publicar evento",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/events/{{newEventCode}}/publish",
+            "description": "ID: E2E-EVT-04\nActor: ADMIN\nPrecondiciones: Evento en DRAFT, fecha futura, venue activo y artista asociado si la política local lo exige.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comprobar status=PUBLISHED y guardar newEventCode también en publishedEventCode.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-02 — Consultar evento por código",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/events/{{publishedEventCode}}",
+            "description": "ID: E2E-EVT-02\nActor: ANONYMOUS\nPrecondiciones: Después de publicar, copiar el código del evento a publishedEventCode.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK; evento ausente o borrador oculto: 404\nRevisión manual: Comprobar eventCode, status=PUBLISHED, venue y artistas visibles.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-03 — Listar eventos publicados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/events/published",
+            "description": "ID: E2E-EVT-03\nActor: ANONYMOUS\nPrecondiciones: Debe existir al menos un evento publicado.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comprobar lista JSON y confirmar que no contiene eventos DRAFT/CANCELLED/FINISHED.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-EVT-06 — Buscar eventos por artista",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/events/by-artist?stageName={{artistStageName}}",
+            "description": "ID: E2E-EVT-06\nActor: ANONYMOUS\nPrecondiciones: El artista debe estar asociado a un evento publicado.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Los resultados públicos deben contener solo eventos publicados.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "SETUP-EVT-DRAFT — Crear borrador separado para escenarios negativos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"{{draftEventCode}}\",\n  \"name\": \"PulsePass E2E draft {{runId}}\",\n  \"description\": \"Borrador reservado para pruebas negativas\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-16T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/events",
+            "description": "ID: SETUP-EVT-DRAFT\nActor: ADMIN\nPrecondiciones: Después de que adminToken esté configurado y venueActiveCode sea real. draftEventCode debe ser único y este evento NO se publicará.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 201 Created\nRevisión manual: Guardar draftEventCode; usarlo solo para comprobar que visitante/USER no pueden ver ni publicar borradores.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 Tickets (6 rutas)",
+      "item": [
+        {
+          "name": "E2E-TKT-01 — Comprar ticket propio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userEmail\": \"{{userAEmail}}\",\n  \"eventCode\": \"{{publishedEventCode}}\",\n  \"type\": \"GENERAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/tickets",
+            "description": "ID: E2E-TKT-01\nActor: USER_A\nPrecondiciones: USER_A autenticado y evento publicado futuro, edad compatible y capacidad disponible. Copiar ticketCode devuelto a ticketCancelableCode.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 201 Created\nRevisión manual: Comprobar ticketCode, userEmail de USER_A, eventCode correcto y status inicial PAID.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-TKT-02 — Consultar ticket propio",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketCancelableCode}}",
+            "description": "ID: E2E-TKT-02\nActor: USER_A\nPrecondiciones: Ejecutar después de comprar ticket; ticketCancelableCode debe ser código real retornado.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comprobar propietario, evento, type y status; no inferir éxito solo del código 200.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-TKT-03 — Listar tickets propios",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/tickets/by-user?email={{userAEmail}}",
+            "description": "ID: E2E-TKT-03\nActor: USER_A\nPrecondiciones: USER_A tiene al menos un ticket.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: La lista debe contener solo los tickets del usuario autenticado.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-TKT-04 — Listar tickets pagados de un evento",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/events/{{publishedEventCode}}/tickets/paid",
+            "description": "ID: E2E-TKT-04\nActor: STAFF o ADMIN\nPrecondiciones: El actor debe ser STAFF o ADMIN. El evento debe tener tickets PAID.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Todos los tickets devueltos deben corresponder al evento y estado PAID.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-TKT-05 — Cancelar ticket propio",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketCancelableCode}}/cancel",
+            "description": "ID: E2E-TKT-05\nActor: USER_A\nPrecondiciones: Utilizar un ticket PAID elegible que no se reutilizará en el escenario de uso.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Volver a consultar como propietario/operador y comprobar status=CANCELLED (o estado definido por Service).\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-TKT-01B — Comprar segundo ticket para poder marcarlo usado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userEmail\": \"{{userAEmail}}\",\n  \"eventCode\": \"{{publishedEventCode}}\",\n  \"type\": \"GENERAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/tickets",
+            "description": "ID: E2E-TKT-01B\nActor: USER_A\nPrecondiciones: Ejecutar antes de TC-SEC-012; usar ticket independiente del cancelable. Copiar ticketCode a ticketUsableCode.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 201 Created\nRevisión manual: Confirmar que el ticket pertenece a USER_A y está en estado PAID.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-TKT-06 — Marcar como usado un ticket",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketUsableCode}}/use",
+            "description": "ID: E2E-TKT-06\nActor: STAFF\nPrecondiciones: Crear una segunda compra independiente y copiar su ticketCode a ticketUsableCode; debe estar en estado elegible.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Consultar después con actor autorizado y comprobar status=USED; no reutilizar el ticket cancelado.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07 Seguridad / escenarios negativos (ejecución manual)",
+      "item": [
+        {
+          "name": "E2E-USR-01B — Registrar USER_B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{userBUsername}}\",\n  \"email\": \"{{userBEmail}}\",\n  \"firstName\": \"Carlos\",\n  \"lastName\": \"Pruebas\",\n  \"phone\": \"\",\n  \"city\": \"Santa Marta\",\n  \"birthDate\": \"1997-02-03\",\n  \"password\": \"{{userBPassword}}\",\n  \"role\": \"ADMIN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/users",
+            "description": "ID: E2E-USR-01B\nActor: ANONYMOUS\nPrecondiciones: Usar datos únicos diferentes a USER_A; completar password de 12+ caracteres.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 201 Created\nRevisión manual: Incluye deliberadamente role=ADMIN en el JSON: el registro público debe ignorarlo y asignar solo USER. Confirmar ausencia de password/hash en UserResponse.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "E2E-AUTH-01B — Login de USER_B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{userBUsername}}\",\n  \"password\": \"{{userBPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "ID: E2E-AUTH-01B\nActor: USER_B\nPrecondiciones: Después del registro copiar accessToken manualmente a userBToken.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Comprobar tokenType y TTL, no persistir token en archivos compartidos.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-016 — Verificar que role inyectado no elevó a USER_B",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "ID: TC-SEC-016\nActor: USER_B\nPrecondiciones: Registrar USER_B con role=ADMIN inyectado y hacer login.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: La lista roles debe contener USER y no ADMIN.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-001 — Sin token no puede crear eventos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"NEG-{{runId}}\",\n  \"name\": \"Seguridad manual\",\n  \"description\": \"Payload válido para probar autorización\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-15T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/events",
+            "description": "ID: TC-SEC-001\nActor: ANONYMOUS\nPrecondiciones: Enviar un cuerpo estructuralmente válido; la petición debe ser rechazada en seguridad antes de llegar al Service.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 401 Unauthorized\nRevisión manual: Comprobar ErrorResponse (timestamp,status,error,message,details) y confirmar que el evento no se creó.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-002 — USER no puede crear eventos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"NEG-{{runId}}\",\n  \"name\": \"Seguridad manual\",\n  \"description\": \"Payload válido para probar autorización\",\n  \"category\": \"MUSIC\",\n  \"eventDate\": \"2030-12-15T20:00:00\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/events",
+            "description": "ID: TC-SEC-002\nActor: USER_A\nPrecondiciones: Usar USER_A con token válido y cuerpo JSON válido.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: Comprobar ErrorResponse y que no existe el eventCode enviado.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-003 — USER no puede publicar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/events/{{draftEventCode}}/publish",
+            "description": "ID: TC-SEC-003\nActor: USER_A\nPrecondiciones: draftEventCode debe identificar un evento en DRAFT.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: Confirmar que permanece DRAFT al consultarlo con ADMIN.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-004 — USER no puede asociar artista",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/events/{{draftEventCode}}/artists/{{artistId}}",
+            "description": "ID: TC-SEC-004\nActor: USER_A\nPrecondiciones: Evento borrador y artista existente.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: Confirmar que no se añadió la relación.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-005 — Visitante no puede ver borrador",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/events/{{draftEventCode}}",
+            "description": "ID: TC-SEC-005\nActor: ANONYMOUS\nPrecondiciones: draftEventCode debe ser un evento DRAFT.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 404 Not Found\nRevisión manual: El evento borrador debe ocultarse igual que un recurso inexistente; no deben filtrarse sus campos.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-006 — USER_B no puede consultar datos de USER_A por email",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/users/by-email?email={{userAEmail}}",
+            "description": "ID: TC-SEC-006\nActor: USER_B\nPrecondiciones: Registrar USER_B, iniciar sesión y copiar token a userBToken.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: No debe devolver datos personales de USER_A.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-007 — USER_B no puede consultar datos de USER_A por username",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/users/by-username?username={{userAUsername}}",
+            "description": "ID: TC-SEC-007\nActor: USER_B\nPrecondiciones: USER_A y USER_B son cuentas distintas con tokens válidos.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: No debe devolver datos personales de USER_A.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-008 — Compra con email ajeno es denegada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userEmail\": \"{{userBEmail}}\",\n  \"eventCode\": \"{{publishedEventCode}}\",\n  \"type\": \"GENERAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/tickets",
+            "description": "ID: TC-SEC-008\nActor: USER_A\nPrecondiciones: USER_A tiene token válido; usar el email real de USER_B y evento publicado en el cuerpo.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: No se debe crear un ticket para USER_B; comparar luego desde una consulta autorizada.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-009 — USER_B no puede leer ticket de USER_A",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketCancelableCode}}",
+            "description": "ID: TC-SEC-009\nActor: USER_B\nPrecondiciones: ticketCancelableCode debe pertenecer a USER_A.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: Confirmar ErrorResponse sin datos del ticket.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-010 — USER_B no puede listar tickets de USER_A",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/tickets/by-user?email={{userAEmail}}",
+            "description": "ID: TC-SEC-010\nActor: USER_B\nPrecondiciones: USER_B con token válido.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: No debe mostrar información de los tickets de USER_A.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-011 — USER_B no puede cancelar ticket ajeno",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userBToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketCancelableCode}}/cancel",
+            "description": "ID: TC-SEC-011\nActor: USER_B\nPrecondiciones: Usar ticket de USER_A aún cancelable; no ejecutar primero la cancelación del propietario.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: Leer después el estado como actor autorizado y confirmar que no cambió.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-012 — USER normal no puede usar ticket",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketUsableCode}}/use",
+            "description": "ID: TC-SEC-012\nActor: USER_A\nPrecondiciones: Ticket usable real y USER_A autenticado.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: Confirmar que el estado no cambió.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-004 — Login con contraseña incorrecta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{userAUsername}}\",\n  \"password\": \"Incorrecta-No-Valida-2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "ID: TC-AUTH-004\nActor: ANONYMOUS\nPrecondiciones: Usar identificador existente con contraseña incorrecta.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 401 Unauthorized\nRevisión manual: El mensaje debe ser genérico y no revelar si el identificador existe.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-007 — /auth/me sin token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "ID: TC-AUTH-007\nActor: ANONYMOUS\nPrecondiciones: Eliminar cualquier encabezado Authorization.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 401 Unauthorized\nRevisión manual: Comprobar los cinco campos ErrorResponse sin stack trace.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-008 — Token Bearer malformado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{invalidToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "ID: TC-AUTH-008\nActor: ANONYMOUS\nPrecondiciones: En esta petición configurar manualmente Authorization=Bearer token-invalido; no guardarlo como token real.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 401 Unauthorized\nRevisión manual: No debe responder 500 ni revelar claims, firma o clave.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-013 — Token de usuario desactivado deja de funcionar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{inactiveToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "ID: TC-AUTH-013\nActor: INACTIVE_USER\nPrecondiciones: Registrar cuenta, capturar inactiveToken y desactivar el usuario en la base de prueba. El token debe ser el emitido antes de desactivar.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 401 Unauthorized\nRevisión manual: Confirmar ErrorResponse, sin stack trace. La aplicación recarga el estado vigente desde persistencia.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-013 — USER no puede listar tickets pagados del evento",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/events/{{publishedEventCode}}/tickets/paid",
+            "description": "ID: TC-SEC-013\nActor: USER_A\nPrecondiciones: USER_A autenticado y evento con tickets PAID.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 403 Forbidden\nRevisión manual: No debe devolver la lista operativa ni invocar la operación autorizada.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-014 — Anónimo no puede comprar ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userEmail\": \"{{userAEmail}}\",\n  \"eventCode\": \"{{publishedEventCode}}\",\n  \"type\": \"GENERAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/tickets",
+            "description": "ID: TC-SEC-014\nActor: ANONYMOUS\nPrecondiciones: Enviar un body estructuralmente válido para un evento publicado.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 401 Unauthorized\nRevisión manual: Comprobar ErrorResponse y confirmar que no aparece un ticket nuevo.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-015 — ADMIN puede consultar borrador",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/events/{{draftEventCode}}",
+            "description": "ID: TC-SEC-015\nActor: ADMIN\nPrecondiciones: El request SETUP-EVT-DRAFT ya creó un evento DRAFT y adminToken está actualizado.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 200 OK\nRevisión manual: Confirmar que ADMIN puede ver el estado DRAFT; la misma ruta devuelve 404 sin privilegios.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-009 — JWT manipulado (cambiar un carácter)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tamperedToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "Precondición: copia manualmente userAToken a la variable local tamperedToken y cambia un solo carácter del token sin modificarlo desde la colección. Send. Esperado: 401 Unauthorized con ErrorResponse; no se autentica."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-010 — JWT expirado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{expiredToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "Precondición: usa un token de prueba que ya haya expirado (TTL configurado o token de una sesión anterior de más de 15 minutos). Copia ese valor a expiredToken sin guardarlo en archivos compartidos. Si no dispones de un token expirado, registra BLOCKED; no marques PASS. Esperado: 401 con ErrorResponse."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-011 — JWT de otra clave o issuer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{foreignToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "Precondición: coloca en foreignToken un token de prueba firmado con una clave exclusiva distinta o con issuer diferente; nunca uses una clave real ni la incluyas en esta colección. Si no puedes generar el fixture de forma segura, registra BLOCKED. Esperado: 401 con ErrorResponse."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-012 — Token enviado por query string no autentica",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me?access_token={{userAToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ],
+              "query": [
+                {
+                  "key": "access_token",
+                  "value": "{{userAToken}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Precondición: userAToken contiene un JWT válido. Esta solicitud deliberadamente no envía Authorization: Bearer. Esperado: 401; el servidor no debe aceptar tokens desde la query string."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-AUTH-015 — Bearer inválido en ruta pública",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues/active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues",
+                "active"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{invalidToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Precondición: usa invalidToken como Bearer en una ruta pública. El filtro del proyecto debe rechazar un Bearer presente pero inválido; esperado: 401 uniforme, no una respuesta 200 anónima."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-SEC-017 — Revocar rol STAFF con token previo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{{publishedEventCode}}/tickets/paid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{{publishedEventCode}}",
+                "tickets",
+                "paid"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Precondición: inicia sesión como STAFF y copia el token en staffToken. En la base exclusiva E2E, elimina temporalmente el rol STAFF de ese usuario sin borrar el usuario ni cambiar el token; envía esta solicitud con el mismo token. Esperado: 403 porque los roles se recargan desde persistencia. Restaura el rol al terminar."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "08 Validaciones y conflictos HTTP",
+      "description": "Escenarios adicionales para comprobar 400/409 con actor autorizado cuando aplica. Ejecutar manualmente tras cumplir todas las precondiciones.",
+      "item": [
+        {
+          "name": "TC-HTTP-400-001 — Email inválido en registro",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"e2e_invalid_{{runId}}\",\n  \"email\": \"esto-no-es-correo\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"Invalid\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"ValidPassword2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/users",
+            "description": "ID: TC-HTTP-400-001\nActor: ANONYMOUS\nPrecondiciones: username/email nuevos y password válido; enviar email sin formato válido.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 400 Bad Request\nRevisión manual: Comprobar ErrorResponse y details.email; no se debe registrar usuario.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-HTTP-400-002 — Request de evento inválido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventCode\": \"INVALID-{{runId}}\",\n  \"minimumAge\": 0,\n  \"venueCode\": \"{{venueActiveCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/events",
+            "description": "ID: TC-HTTP-400-002\nActor: ADMIN\nPrecondiciones: Usar adminToken. El body está deliberadamente sin name, category y eventDate requeridos.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 400 Bad Request\nRevisión manual: Comprobar details para los campos inválidos y que no se crea el evento.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-409-001 — Duplicado de username/email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{userAUsername}}\",\n  \"email\": \"{{userAEmail}}\",\n  \"firstName\": \"Andrea\",\n  \"lastName\": \"Pruebas\",\n  \"phone\": \"\",\n  \"city\": \"Santa Marta\",\n  \"birthDate\": \"1998-05-15\",\n  \"password\": \"{{userAPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/users",
+            "description": "ID: TC-BIZ-409-001\nActor: ANONYMOUS\nPrecondiciones: USER_A ya existe. Repetir su username/email con body válido.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 409 Conflict\nRevisión manual: Comprobar ErrorResponse y que no se crea una segunda cuenta.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-409-002 — Publicar evento ya publicado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/events/{{publishedEventCode}}/publish",
+            "description": "ID: TC-BIZ-409-002\nActor: ADMIN\nPrecondiciones: El evento ya está PUBLISHED, luego de E2E-EVT-04.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 409 Conflict\nRevisión manual: Comprobar ErrorResponse y que el estado sigue PUBLISHED.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-409-003 — Cancelar ticket ya cancelado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userAToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketCancelableCode}}/cancel",
+            "description": "ID: TC-BIZ-409-003\nActor: USER_A\nPrecondiciones: Ejecutar después de E2E-TKT-05.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 409 Conflict\nRevisión manual: Consultar el ticket después y confirmar que no hubo otra mutación.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        },
+        {
+          "name": "TC-BIZ-409-004 — Usar ticket ya usado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{staffToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/tickets/{{ticketUsableCode}}/use",
+            "description": "ID: TC-BIZ-409-004\nActor: STAFF\nPrecondiciones: Ejecutar después de E2E-TKT-06.\nEjecución: seleccionar el ambiente local y pulsar Send manualmente.\nHTTP esperado: 409 Conflict\nRevisión manual: Consultar el ticket y confirmar que ya está USED, sin una transición inválida.\nEvidencia: anotar el HTTP y el resultado en tests/e2e/registro-ejecucion-manual.md."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
