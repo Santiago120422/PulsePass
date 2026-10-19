@@ -1,0 +1,11 @@
+PulsePass — entrega Fase 5 (Postman manual)
+
+Este paquete contiene la carpeta tests/e2e/ para agregar a tu proyecto actual.
+
+1. Descomprime el ZIP en la carpeta raíz del proyecto PulsePass (la misma donde está pom.xml).
+2. Si ya existe tests/e2e/, respáldala primero y combina/reemplaza solo los entregables de esa carpeta. No reemplaces src/, pom.xml ni tus arreglos recientes de pruebas.
+3. Importa desde Postman los dos archivos de tests/e2e/postman/: la colección y el ambiente.
+4. Sigue tests/e2e/README.md y tests/e2e/checklist-e2e-manual.md.
+5. La bitácora empieza en NOT RUN; no está simulada ni marcada como aprobada. Registra solo lo que enviaste realmente desde Postman.
+
+La colección está en formato Postman v2.1 y no contiene scripts ni automatizaciones. Incluye 22 rutas base y solicitudes adicionales de seguridad/errores.

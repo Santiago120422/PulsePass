@@ -1,0 +1,5 @@
+# No versionar ambientes Postman exportados con secretos/tokens locales
+*.private.postman_environment.json
+*with-secrets*.postman_environment.json
+# Evidencia local opcional; revisar y redactar antes de compartir
+evidencia-local/
