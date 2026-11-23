@@ -67,6 +67,7 @@ public class SecurityConfig {
                 // --- publicas ---
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/users").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/venues/**", "/api/artists/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/tickets/prices").permitAll()
                 // eventos: publicas, pero EventController oculta los no publicados (404) a quien no sea STAFF/ADMIN
                 .requestMatchers(HttpMethod.GET, "/api/events/published", "/api/events/by-artist", "/api/events/*").permitAll()
                 // --- ADMIN ---

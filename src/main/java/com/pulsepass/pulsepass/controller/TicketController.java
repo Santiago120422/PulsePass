@@ -1,6 +1,7 @@
 package com.pulsepass.pulsepass.controller;
 
 import com.pulsepass.pulsepass.dto.request.PurchaseTicketRequest;
+import com.pulsepass.pulsepass.domain.enums.TicketType;
 import com.pulsepass.pulsepass.dto.response.TicketResponse;
 import com.pulsepass.pulsepass.service.TicketService;
 import jakarta.validation.Valid;
@@ -9,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.math.BigDecimal;
 
 /**
  * Expone TicketService. El endpoint de tickets pagados por evento vive aquí
@@ -27,6 +30,11 @@ public class TicketController {
     @PostMapping("/tickets")
     public ResponseEntity<TicketResponse> purchase(@Valid @RequestBody PurchaseTicketRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ticketService.purchase(request));
+    }
+
+    @GetMapping("/tickets/prices")
+    public ResponseEntity<Map<TicketType, BigDecimal>> prices() {
+        return ResponseEntity.ok(ticketService.prices());
     }
 
     @GetMapping("/tickets/{ticketCode}")
