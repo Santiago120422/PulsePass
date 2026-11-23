@@ -18,6 +18,8 @@ import com.pulsepass.pulsepass.service.TicketService;
 import com.pulsepass.pulsepass.service.pricing.PricingStrategy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.EnumMap;
+import java.util.Map;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -124,6 +126,15 @@ public class TicketServiceImpl implements TicketService {
         }
 
         return ticketMapper.toResponse(saved);
+    }
+
+    @Override
+    public Map<TicketType, BigDecimal> prices() {
+        var prices = new EnumMap<TicketType, BigDecimal>(TicketType.class);
+        for (TicketType type : TicketType.values()) {
+            prices.put(type, pricingStrategy.priceFor(type));
+        }
+        return prices;
     }
 
     @Override

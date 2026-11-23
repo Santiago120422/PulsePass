@@ -4,6 +4,10 @@ Caso de estudio académico enfocado en modelado de dominio, persistencia JPA,
 migraciones versionadas con Flyway y pruebas de integración reales contra
 PostgreSQL usando Testcontainers.
 
+## Frontend web
+
+El cliente React está en [frontend/](frontend/README.md). Usa Node.js 22.22 o posterior y levanta la API antes de ejecutar `npm ci` y `npm run dev` desde `frontend/`.
+
 ## Stack técnico
 
 - Java 21
@@ -107,13 +111,29 @@ Debe finalizar con `BUILD SUCCESS`.
 
 ## Cómo correr la aplicación localmente (opcional)
 
-1. Levanta una instancia de PostgreSQL local o vía Docker.
-2. Ajusta `src/main/resources/application.properties` con tus credenciales.
-3. Ejecuta:
-```bash
-   mvn spring-boot:run
+Desde la raíz del repositorio, con Docker Desktop iniciado:
+
+```powershell
+docker compose up -d --wait postgres
+docker compose ps
 ```
-4. Flyway aplicará automáticamente V1, V2 y V3 al arrancar.
+
+El servicio publica PostgreSQL en `localhost:5432` y usa `pulsepass` como nombre de base, usuario y contraseña local. Puedes usar esos datos en DBeaver. Si ya tienes una instancia con datos, puedes conectarte a ella y configurar su conexión en Spring Boot.
+
+Para iniciar Spring Boot en PowerShell, genera una clave JWT temporal en esa misma sesión:
+
+```powershell
+$jwtBytes = New-Object byte[] 32
+$jwtRandom = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$jwtRandom.GetBytes($jwtBytes)
+$jwtRandom.Dispose()
+$env:PULSEPASS_JWT_SECRET_BASE64 = [Convert]::ToBase64String($jwtBytes)
+.\mvnw.cmd spring-boot:run
+```
+
+Flyway aplica las migraciones pendientes al arrancar. Para ver los datos en DBeaver, abre el esquema `public` de la base `pulsepass`.
+
+Para probar la cartelera, abre y ejecuta [scripts/demo-data.sql](scripts/demo-data.sql) desde un editor SQL conectado a `pulsepass`. El script agrega sedes, artistas y eventos publicados de demostración. Puedes volver a ejecutarlo sin duplicar filas.
 
 ## Fuera de alcance (según el PRD)
 
